@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>VISJS for DOCREQ test</title>
+    <link rel="stylesheet" href="visgraph.css">
+
 </head>
 <body>
 
@@ -10,14 +12,16 @@
 
     <div ng-controller="mainCtrl">
 
-        <h2>{{test}}</h2>
+        <vis-graph data="data" settings="settings"></vis-graph>
 
     </div>
 
-
-
     <script src="bower_components/angular/angular.js"></script>
+    <script src="bower_components/vis/dist/vis.js"></script>
     <script src="app.js"></script>
+    <script src="vis-graph.directive.js"></script>
+    <script src="visjs-utils.service.js"></script>
+
 
 
 </body>
