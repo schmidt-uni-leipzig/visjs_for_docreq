@@ -1,0 +1,24 @@
+{
+  "name": "visjs-for-docreq",
+  "version": "0.0.0",
+  "authors": [
+    "Stefan Bechert <bechert@infai.org>"
+  ],
+  "description": "",
+  "main": "",
+  "moduleType": [],
+  "license": "MIT",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "~1.4.6",
+    "vis": "3.9.0"
+  }
+}
