@@ -1,8 +1,8 @@
 /**
- * A bunch of special utils which can be used by working with visjs.
+ * A bunch of special utils needed for docreq <-> visjs.
  *
  * @version 0.1.3
- * @date 2015-01-30
+ * @date 2015-09-28
  */
 
 
@@ -33,10 +33,12 @@ angular.module('testApp')
          *
          * @param edgePack [{}]
          * @param nodePack [{}]
+         * @param container DOM element for vishjs canvas
+         * @param settingsImport user settings
          */
-        serviceObject.redrawAll = function (edgePack, nodePack, container, settingsTemp) {
+        serviceObject.redrawAll = function (edgePack, nodePack, container, settingsImport) {
 
-            settings = settingsTemp;
+            settings = settingsImport;
 
 
             nodes = new vis.DataSet();
@@ -149,7 +151,7 @@ angular.module('testApp')
 
             nodes.update(allNodes);
             edges.update(allEdges);
-        }
+        };
 
 
         /**
@@ -163,7 +165,7 @@ angular.module('testApp')
 
 
 
-            if (selectedItems.nodes.length === 0) {
+            if (selectedItems.nodes.length !== 1) {
                 restoreOnUnselect(allNodes, allEdges, settings);
             } else {
                 for (var i = 0; i < allEdges.length; i++) {
@@ -174,14 +176,18 @@ angular.module('testApp')
                     }
                 }
 
-                clearLevelOfSeperation(allNodes);
-                appendConnectedNodes(selectedItems.nodes, allEdges);
-                storeLevelOfSeperation(selectedItems.nodes, 1, allNodes, nodeIndex);
+                clearLevelOfSeperation(allNodes); //reset nodes
+
+                var ids = getConnectedNodes(selectedItems.nodes[0], allEdges, true);
+                ids.push(selectedItems.nodes[0]);
+                console.log(selectedItems.nodes[0], ids);
+
+                storeLevelOfSeperation(ids, allNodes); //save node states
 
 
-                console.log(allNodes, allEdges);
+                //console.log(allNodes, allEdges);
 
-                setColor(allNodes, allEdges, true, settings);
+                setColor(allNodes, allEdges, true);
             }
 
             nodes.update(allNodes);
@@ -230,7 +236,7 @@ angular.module('testApp')
                     //selecting nodes and edges for highlighting
                     for (var k = 0; k < paths.length; k++) {
                         for (var e = 0; e < paths[k].length; e++) {
-                            allNodes[givePos(paths[k][e], nodeIndex)].inConnectionList = true;
+                            allNodes[givePos(paths[k][e])].inConnectionList = true;
                         }
                     }
                     for (var foo = 0; foo < paths.length; foo++) {
@@ -289,24 +295,23 @@ angular.module('testApp')
 
         /**
          * update the allNodes object with the level of separation.
-         * Arrays are passed by reference, we do not need to return them because we are working in the same object.
          */
-        function storeLevelOfSeperation(connectedNodes, level, allNodes, nodeIndex) {
-            for (var i = 0; i < connectedNodes.length; i++) {
-                var nodePos = givePos(connectedNodes[i], nodeIndex);
-                if (allNodes[nodePos].levelOfSeperation === undefined) {
-                    allNodes[nodePos].levelOfSeperation = level;
-                }
+        function storeLevelOfSeperation(nodeIdsForHighlighting, allNodes) {
+
+            for (var i = 0; i < nodeIdsForHighlighting.length; i++) {
+                var nodePos = givePos(nodeIdsForHighlighting[i]);
+
+                allNodes[nodePos].levelOfSeperation = 1;
                 allNodes[nodePos].inConnectionList = true;
             }
         }
 
         /**
-         * Gives allNodes index for a certain id.
+         * Gives allNodes array index for a specified id.
          * @param id
          * @returns {number}
          */
-        function givePos(id, nodeIndex) {
+        function givePos(id) {
             for (var i = 0; i < nodeIndex.length; i++) {
                 if (id === nodeIndex[i]) {
                     return i;
@@ -315,34 +320,16 @@ angular.module('testApp')
             return -1;
         }
 
-        /**
-         * Add the connected nodes to the list of nodes we already have
-         *
-         *
-         */
-        function appendConnectedNodes(sourceNodes, allEdges) {
-
-            var tempSourceNodes = angular.copy(sourceNodes);
-
-            for (var y = 0; y < tempSourceNodes.length; y++) {
-                var nodeId = tempSourceNodes[y];
-                if (sourceNodes.indexOf(nodeId) === -1) {
-                    sourceNodes.push(nodeId);
-                }
-                addUnique(getConnectedNodes(nodeId, allEdges, true), sourceNodes);
-            }
-            tempSourceNodes = null;
-        }
-
 
         /**
-         * Setting levelOfSeperation of allNodes = undefined
+         * Setting attr levelOfSeperation of all nodes = undefined
          *
          * @param {[object]} allNodes
          */
         function clearLevelOfSeperation(allNodes) {
             for (var nodeId in allNodes) {
                 if (allNodes.hasOwnProperty(nodeId)) {
+
                     allNodes[nodeId].levelOfSeperation = undefined;
                     allNodes[nodeId].inConnectionList = undefined;
                 }
@@ -358,97 +345,45 @@ angular.module('testApp')
          * @param {int} targetId
          * @returns {*}
          */
-        function depthFirstSearch(nodeId, allNodes, allEdges, targetId, nodeIndex) {
-
-            var nodePos = givePos(nodeId, nodeIndex);
-            //if found
-            if (nodeId === targetId) {
-                console.log('found node: ' + allNodes[givePos(nodeId, nodeIndex)].label);
-                return [[nodeId]];
-            }
-            var neighbours = getConnectedNodes(nodeId, allEdges, false);
-
-            //if leaf
-            if (neighbours.length === 0) {
-                console.log('it is a leave -> stop!');
-                return [];
-                //if cycle
-            } else if (allNodes[nodePos].checked) {
-                console.log('we are moving in a cycle ... ');
-
-                return [];
-
-            } else {
-                console.log('neighbours are ' + neighbours);
-                var paths = [];
-                allNodes[nodePos].checked = true;
-
-                for (var i = 0; i < neighbours.length; i++) {
-                    console.log('checking node ' + allNodes[givePos(neighbours[i], nodeIndex)].label);
-                    var temp = depthFirstSearch(neighbours[i], allNodes, allEdges, targetId, nodeIndex);
-
-                    for (var k = 0; k < temp.length; k++) {
-                        temp[k].push(nodeId);
-                        paths.push(temp[k]);
-                    }
-
-                }
-                allNodes[nodePos].checked = false;
-                return paths;
-            }
-        }
-
-        /**
-         * Not in use yet..
-         *
-         * @param nodeIds
-         * @param allNodes
-         * @param allEdges
-         * @param targetId
-         * @param nodeIndex
-         * @returns {*}
-         */
-        function breadthFirstSearch(nodeIds, allNodes, allEdges, targetId, nodeIndex) {
-
-            var nodePos = [];
-            var neighbours = [];
-
-            for (var k = 0; k < nodeIds.length; k++) {
-                nodePos.push(givePos);
-                neighbours.push(getConnectedNodes(nodeIds[k], allEdges, false));
-            }
-
-            //check: targetId found?
-            for (var l = 0; l < nodeIds.length; l++) {
-                if (nodeIds[l] === targetId) {
-                    console.log('found node: ' + allNodes[givePos(nodeIds[l], nodeIndex)].label);
-                    return [[nodeIds[l]]];
-                } else {
-                    allNodes[nodePos[l]].checked = true;
-                }
-            }
-
-            //save next nodes (only if not checked yet)
-            var nodeIdsNext = [];
-            for (var j = 0; j < neighbours.length; j++) {
-                for (var i = 0; i < neighbours[j].length; i++) {
-                    if (!allNodes[givePos(neighbours[j][i], nodeIndex)].checked) {
-                        nodeIdsNext.push(neighbours[j][i]);
-                    }
-                }
-            }
-
-            if (nodeIdsNext.length === 0) {
-                console.log('No solution found!');
-                return [];
-            } else {
-                //if targetId not found -> recursion
-                var temp = breadthFirstSearch(nodeIdsNext, allNodes, allEdges, targetId, nodeIndex);
-                temp[0].push();
-            }
-
-
-        }
+        //function depthFirstSearch(nodeId, allNodes, allEdges, targetId, nodeIndex) {
+        //
+        //    var nodePos = givePos(nodeId, nodeIndex);
+        //    //if found
+        //    if (nodeId === targetId) {
+        //        console.log('found node: ' + allNodes[givePos(nodeId, nodeIndex)].label);
+        //        return [[nodeId]];
+        //    }
+        //    var neighbours = getConnectedNodes(nodeId, allEdges, false);
+        //
+        //    //if leaf
+        //    if (neighbours.length === 0) {
+        //        console.log('it is a leave -> stop!');
+        //        return [];
+        //        //if cycle
+        //    } else if (allNodes[nodePos].checked) {
+        //        console.log('we are moving in a cycle ... ');
+        //
+        //        return [];
+        //
+        //    } else {
+        //        console.log('neighbours are ' + neighbours);
+        //        var paths = [];
+        //        allNodes[nodePos].checked = true;
+        //
+        //        for (var i = 0; i < neighbours.length; i++) {
+        //            console.log('checking node ' + allNodes[givePos(neighbours[i], nodeIndex)].label);
+        //            var temp = depthFirstSearch(neighbours[i], allNodes, allEdges, targetId, nodeIndex);
+        //
+        //            for (var k = 0; k < temp.length; k++) {
+        //                temp[k].push(nodeId);
+        //                paths.push(temp[k]);
+        //            }
+        //
+        //        }
+        //        allNodes[nodePos].checked = false;
+        //        return paths;
+        //    }
+        //}
 
         /**
          * Get a list of nodes that are connected to the supplied nodeId with edges.
@@ -456,11 +391,10 @@ angular.module('testApp')
          * @returns {Array}
          */
         function getConnectedNodes(nodeId, allEdges, bothDirections) {
-            var edgesArray = allEdges;
             var connectedNodes = [];
 
-            for (var i = 0; i < edgesArray.length; i++) {
-                var edge = edgesArray[i];
+            for (var i = 0; i < allEdges.length; i++) {
+                var edge = allEdges[i];
                 if (edge.to === nodeId && bothDirections) {
                     connectedNodes.push(edge.from);
                 }
@@ -472,26 +406,13 @@ angular.module('testApp')
         }
 
         /**
-         * Join two arrays without duplicates
-         * @param fromArray
-         * @param toArray
-         */
-        function addUnique(fromArray, toArray) {
-            for (var i = 0; i < fromArray.length; i++) {
-                if (toArray.indexOf(fromArray[i]) === -1) {
-                    toArray.push(fromArray[i]);
-                }
-            }
-        }
-
-        /**
          * Sets color for Nodes and Edges
          * @param {boolean} hide (for unselected objects)
          * @param allEdges
          * @param allNodes
          */
-        function setColor(allNodes, allEdges, hide, settings) {
-
+        function setColor(allNodes, allEdges, hide) {
+            //nodes
             for (var t = 0; t < allNodes.length; t++) {
 
                 if (allNodes[t].inConnectionList === true) {
@@ -525,25 +446,25 @@ angular.module('testApp')
                         }
                     }
                 }
+            }
 
-                for (var i = 0; i < allEdges.length; i++) {
-                    if (allEdges[i].inConnectionList) {
-                        allEdges[i].color = settings.colSelect;
-                        allEdges[i].width = settings.edgWidthDef;
+            //edges
+            for (var i = 0; i < allEdges.length; i++) {
+                if (allEdges[i].inConnectionList) {
+                    allEdges[i].color = settings.colSelect;
+                    allEdges[i].width = settings.edgWidthDef;
+                } else {
+
+                    if (hide) {
+                        allEdges[i].color = settings.colUn;
+                        allEdges[i].width = settings.edgWidthUn;
                     } else {
-
-                        if (hide) {
-                            allEdges[i].color = settings.colUn;
-                            allEdges[i].width = settings.edgWidthUn;
-                        } else {
-                            allEdges[i].width = settings.edgWidthUn;
-                            allEdges[i].color = settings.colDefault;
-                        }
+                        allEdges[i].width = settings.edgWidthUn;
+                        allEdges[i].color = settings.colDefault;
                     }
                 }
             }
         }
-
 
         return serviceObject;
     });
