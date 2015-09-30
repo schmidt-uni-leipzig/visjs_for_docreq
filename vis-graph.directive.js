@@ -8,17 +8,26 @@ angular.module('testApp')
             restrict: 'E',
             scope: {
                 data: '=',
-                settings: '='
-            },  template: '<div id="__vistemplate"  ></div>',
+                settings: '=',
+                height: '@'
+            },  template: '<div style="width:100%; height: {{height}}" id="__vistemplate"  ></div>',
 
             link: function (scope){
 
+                var firstTimeRendering = true;
+
                 var container = document.getElementById('__vistemplate');
+
 
                 scope.$watch('data', function (newValue){
 
-                    if (newValue) {
+                    if(firstTimeRendering && newValue){
+
                         visUtils.redrawAll(scope.data.edges, scope.data.nodes, container, scope.settings);
+                        firstTimeRendering = false;
+
+                    } else if (newValue) {
+                        visUtils.updateData(scope.data.edges, scope.data.nodes);
                     }
 
                 });

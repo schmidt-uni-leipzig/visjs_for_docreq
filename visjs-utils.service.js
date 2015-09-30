@@ -13,12 +13,10 @@ angular.module('testApp')
     .service('visUtils', function () {
 
 
-        var settings = {};
+        var settings;
         var network;
         var nodes;
         var edges;
-        var nodesData = [];
-        var edgesData = [];
         var nodeIndex = [];
         var listenerOn = true;
         var selectionForPath = [];
@@ -44,6 +42,9 @@ angular.module('testApp')
             nodes = new vis.DataSet();
             edges = new vis.DataSet();
 
+
+            var nodesData = [];
+            var edgesData = [];
 
             //edgePack = Array which contains edgeData <-> nodePack = ...
             for (var i = 0; i < edgePack.length; i++) {
@@ -119,7 +120,15 @@ angular.module('testApp')
                 if (stabilizeTimer === 0) {
                     network.zoomExtent(false);
                 }
+
+                network.off('stabilized'); //dont reset view after first stabilization
             }
+        };
+
+        serviceObject.updateData = function(edgePack, nodePack) {
+
+            nodes.update(edgePack);
+            edges.update(nodePack);
         };
 
         /**
@@ -169,23 +178,15 @@ angular.module('testApp')
                 restoreOnUnselect(allNodes, allEdges, settings);
             } else {
                 for (var i = 0; i < allEdges.length; i++) {
-                    if (allEdges[i].from === selectedItems.nodes[0] || allEdges[i].to === selectedItems.nodes[0]) {
-                        allEdges[i].inConnectionList = true;
-                    } else {
-                        allEdges[i].inConnectionList = false;
-                    }
+                    allEdges[i].inConnectionList = (allEdges[i].from === selectedItems.nodes[0] || allEdges[i].to === selectedItems.nodes[0]);
                 }
 
                 clearLevelOfSeperation(allNodes); //reset nodes
 
                 var ids = getConnectedNodes(selectedItems.nodes[0], allEdges, true);
                 ids.push(selectedItems.nodes[0]);
-                console.log(selectedItems.nodes[0], ids);
 
                 storeLevelOfSeperation(ids, allNodes); //save node states
-
-
-                //console.log(allNodes, allEdges);
 
                 setColor(allNodes, allEdges, true);
             }
@@ -299,10 +300,14 @@ angular.module('testApp')
         function storeLevelOfSeperation(nodeIdsForHighlighting, allNodes) {
 
             for (var i = 0; i < nodeIdsForHighlighting.length; i++) {
-                var nodePos = givePos(nodeIdsForHighlighting[i]);
+                for(var j = 0; j < allNodes.length; j++){
 
-                allNodes[nodePos].levelOfSeperation = 1;
-                allNodes[nodePos].inConnectionList = true;
+                    if(allNodes[j].id === nodeIdsForHighlighting[i]){
+                        allNodes[j].levelOfSeperation = 1;
+                        allNodes[j].inConnectionList = true;
+                    }
+                }
+
             }
         }
 
@@ -311,14 +316,14 @@ angular.module('testApp')
          * @param id
          * @returns {number}
          */
-        function givePos(id) {
-            for (var i = 0; i < nodeIndex.length; i++) {
-                if (id === nodeIndex[i]) {
-                    return i;
-                }
-            }
-            return -1;
-        }
+        //function givePos(id) {
+        //    for (var i = 0; i < nodeIndex.length; i++) {
+        //        if (id === nodeIndex[i]) {
+        //            return i;
+        //        }
+        //    }
+        //    return -1;
+        //}
 
 
         /**
