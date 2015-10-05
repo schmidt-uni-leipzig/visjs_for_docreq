@@ -18,7 +18,6 @@ angular.module('testApp')
         var nodes;
         var edges;
         var nodeIndex = [];
-        var listenerOn = true;
         var selectionForPath = [];
         var stabilizeTimer = 0;
 
@@ -109,8 +108,6 @@ angular.module('testApp')
             };
             network = new vis.Network(container, data, settings.options);
 
-
-            network.on('click', onClick);
             network.on('stabilized', onStabilized);
             network.moveTo({
                 scale: 0.00000000000000000000000000000000000000001
@@ -131,31 +128,23 @@ angular.module('testApp')
             edges.update(nodePack);
         };
 
-        /**
-         * If the button PATH gets pushed, this method runs. It changes between the 'highlight neighbour'
-         * and the 'find path' mode
-         */
-        serviceObject.deactivateNetListeners = function() {
+        serviceObject.setPathOrSelectionMode = function(choice) {
 
             var allNodes = nodes.get();
             var allEdges = edges.get();
             restoreOnUnselect(allNodes, allEdges, settings);
 
-            if (listenerOn) {
+            if(choice === 'path') {
+                //console.log('path mode');
                 network.off('click', onClick);
                 network.on('select', onSelect);
-                document.getElementById('__vispathstatus').innerHTML = 'PATH is activated.';
-                document.getElementById('__vispathstatus').style.color = 'green';
+                selectionForPath = [];
 
-
-                listenerOn = false;
             } else {
+                //console.log('selection mode');
                 network.on('click', onClick);
                 network.off('select', onSelect);
                 selectionForPath = [];
-                document.getElementById('__vispathstatus').innerHTML = 'PATH is not activated.';
-                document.getElementById('__vispathstatus').style.color = 'red';
-                listenerOn = true;
             }
 
             nodes.update(allNodes);
@@ -230,40 +219,105 @@ angular.module('testApp')
             //if two selected -> calculate path
             if (selectionForPath.length === 2) {
 
-                var paths = depthFirstSearch(selectionForPath[0].id, allNodes, allEdges, selectionForPath[1].id, nodeIndex);
-                console.log(paths);
-                if (paths.length > 0) {
-                    hide = true;
-                    //selecting nodes and edges for highlighting
-                    for (var k = 0; k < paths.length; k++) {
-                        for (var e = 0; e < paths[k].length; e++) {
-                            allNodes[givePos(paths[k][e])].inConnectionList = true;
-                        }
-                    }
-                    for (var foo = 0; foo < paths.length; foo++) {
-                        for (var baz = paths[foo].length - 1; baz >= 1; baz--) {
-                            for (var bar = 0; bar < allEdges.length; bar++) {
-                                if (allEdges[bar].from === paths[foo][baz] && allEdges[bar].to === paths[foo][baz - 1]) {
-                                    allEdges[bar].inConnectionList = true;
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    console.log('No solution...');
-                    alert('No solution found...');
-                    for (var w = 0; w < allNodes.length; w++) {
-                        allNodes[w].inConnectionList = false;
-                    }
-                }
+                //TODO
+                //var temp = angular.copy(allNodes);
+                //setAllNodesToUnvisited(temp);
+                //for(i = 0; i < temp.length; i++){
+                //    if(temp[i].state === 'unchecked'){
+                //        tarjanForStronglyConnectedComponents(temp, allEdges, temp[i]);
+                //    }
+                //}
+
                 selectionForPath = [];
             }
 
-            setColor(allNodes, allEdges, hide, settings);
+            setColor(allNodes, allEdges, hide);
             nodes.update(allNodes);
             edges.update(allEdges);
         }
 
+
+        //var count = 0;
+        //var stack = [];
+
+        //function setAllNodesToUnvisited(allNodes) {
+        //
+        //    count = 0;
+        //    stack = [];
+        //
+        //    for(var i = 0; i < allNodes.length; i++){
+        //        allNodes[i].state = 'unchecked';
+        //    }
+        //}
+
+
+        //function tarjanForStronglyConnectedComponents(allNodes, allEdges, currentNode) {
+
+            //currentNode = allNodes[0]
+
+            //possible states: unchecked, checked, finished
+            //currentNode.state = 'checked';
+            //console.log(allNodes);
+            //
+            //count++;
+            //currentNode.in = count;
+            //currentNode.l = count;
+            //
+            //stack.push(currentNode);
+            //currentNode.onStack = true;
+            //
+            //var su = succ(currentNode.id, allEdges);
+            //
+            //for(var i = 0; i < su.length; i++) {
+            //    var next = getNodeById(su[i], allNodes);
+            //    //console.log(next);
+            //
+            //    if(next.state === 'unchecked') {
+            //        tarjanForStronglyConnectedComponents(allNodes, allEdges, next);
+            //        currentNode.l = currentNode.l > next.l ? next.l : currentNode.l;
+            //    } else if(next.onStack) {
+            //        currentNode.l = currentNode.l > next.in ? next.in : currentNode.l;
+            //    }
+            //
+            //}
+            //
+            //if(currentNode.l === currentNode.in) {
+            //    console.log('starke Szkomponente:');
+            //    while(stack[stack.length - 1].id !== currentNode.id) {
+            //        var w = stack.pop();
+            //        w.onStack = false;
+            //        console.log(w);
+            //    }
+            //}
+            //
+            //currentNode.state = 'finished';
+            //count++;
+
+            //Tarjan-visit(G,v){
+            //    farbe[v]=grau; zeit=zeit+1; in[v]=zeit; l[v]=zeit;
+            //    PUSH(S,v)
+            //    FOR EACH u in succ(v) DO {
+            //        IF farbe[u]=weiss THEN
+            //        { Tarjan-visit[u]; l[v]=min(l[v],l[u]) ;}
+            //        ELSEIF u in S THEN l[v]=min(l[v],in[u]);
+            //    }
+            //    IF (l[v]=in[v]) {
+            //        Ausgabe(starke ZshK":)
+            //        DO { u=TOP(S); Ausgabe(u); POP(S); }
+            //        UNTIL u=v;
+            //    }
+            //    farbe[v]=schwarz; zeit=zeit+1;
+            //}
+        //}
+
+        //function getNodeById(nodeId, allNodes) {
+        //     for( var i = 0; i < allNodes.length; i++) {
+        //         if(allNodes[i].id === nodeId){
+        //             return allNodes[i];
+        //         }
+        //     }
+        //    return null;
+        //}
 
         /**
          * Sets all Nodes (Color and Label) on unselect (!visjs can still
@@ -310,21 +364,6 @@ angular.module('testApp')
 
             }
         }
-
-        /**
-         * Gives allNodes array index for a specified id.
-         * @param id
-         * @returns {number}
-         */
-        //function givePos(id) {
-        //    for (var i = 0; i < nodeIndex.length; i++) {
-        //        if (id === nodeIndex[i]) {
-        //            return i;
-        //        }
-        //    }
-        //    return -1;
-        //}
-
 
         /**
          * Setting attr levelOfSeperation of all nodes = undefined
@@ -393,7 +432,7 @@ angular.module('testApp')
         /**
          * Get a list of nodes that are connected to the supplied nodeId with edges.
          * @param nodeId, bothDirections
-         * @returns {Array}
+         * @returns {Array of Ids}
          */
         function getConnectedNodes(nodeId, allEdges, bothDirections) {
             var connectedNodes = [];
@@ -409,6 +448,20 @@ angular.module('testApp')
             }
             return connectedNodes;
         }
+
+        //function succ(nodeId, allEdges) {
+        //
+        //    var connectedNodes = [];
+        //
+        //    for (var i = 0; i < allEdges.length; i++) {
+        //        var edge = allEdges[i];
+        //
+        //        if(edge.from === nodeId) {
+        //            connectedNodes.push(edge.to);
+        //        }
+        //    }
+        //    return connectedNodes;
+        //}
 
         /**
          * Sets color for Nodes and Edges

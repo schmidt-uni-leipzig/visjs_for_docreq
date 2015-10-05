@@ -19,6 +19,7 @@
   ],
   "dependencies": {
     "angular": "~1.4.6",
-    "vis": "3.9.0"
+    "vis": "3.9.0",
+    "jquery": "~2.1.4"
   }
 }
