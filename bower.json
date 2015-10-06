@@ -5,7 +5,7 @@
     "Stefan Bechert <bechert@infai.org>"
   ],
   "description": "",
-  "main": "",
+  "main": ["vis-graph.dist.js"],
   "moduleType": [],
   "license": "MIT",
   "homepage": "",

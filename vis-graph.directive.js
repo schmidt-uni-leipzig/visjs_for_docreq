@@ -10,7 +10,7 @@ angular.module('testApp')
                 data: '=',
                 settings: '=',
                 height: '@'
-            },  template: '<div style="width:100%; height: {{height}}" id="__vistemplate"  ></div>',
+            },  template: '<div style="width:100%; height: {{height}}" id="__vistemplate"></div>',
             link: function (scope){
 
                 var firstTimeRendering = true;

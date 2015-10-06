@@ -11,15 +11,8 @@ angular.module('testApp', []).controller('mainCtrl', ['$scope', function($scope)
         if(count === 0){
 
             $scope.showViz = !$scope.showViz;
-            $scope.showOverlay = !$scope.showOverlay;
             count++;
-            zoomDecrease();
-            increaseStabilizeTimer();
         }
-    };
-
-    $scope.deactivateCtrlListener = function() {
-        deactivateNetListeners();
     };
 
 
