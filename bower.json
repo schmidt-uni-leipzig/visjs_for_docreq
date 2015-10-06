@@ -9,7 +9,7 @@
   "moduleType": [],
   "license": "MIT",
   "homepage": "",
-  "private": true,
+  "private": false,
   "ignore": [
     "**/.*",
     "node_modules",
