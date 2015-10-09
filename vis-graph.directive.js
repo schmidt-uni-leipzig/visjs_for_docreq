@@ -1,8 +1,8 @@
 'use strict';
 
 angular.module('testApp')
-    .directive('visGraph', ['visUtils',
-    function (visUtils){
+    .directive('visGraph', ['visUtils', '$timeout',
+    function (visUtils, $timeout){
 
         return {
             restrict: 'E',
@@ -13,6 +13,9 @@ angular.module('testApp')
             },  template: '<div style="width:100%; height: {{height}}" id="__vistemplate"></div>',
             link: function (scope){
 
+                $timeout(function(){
+                    visUtils.setPathOrSelectionMode('selection');
+                }, 1000);
                 var firstTimeRendering = true;
 
                 var container = $('#__vistemplate')[0];

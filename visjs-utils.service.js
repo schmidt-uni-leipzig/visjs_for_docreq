@@ -135,13 +135,11 @@ angular.module('testApp')
             restoreOnUnselect(allNodes, allEdges, settings);
 
             if(choice === 'path') {
-                //console.log('path mode');
                 network.off('click', onClick);
                 network.on('select', onSelect);
                 selectionForPath = [];
 
             } else {
-                //console.log('selection mode');
                 network.on('click', onClick);
                 network.off('select', onSelect);
                 selectionForPath = [];
