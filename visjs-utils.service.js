@@ -9,7 +9,7 @@
 'use strict';
 
 
-angular.module('testApp')
+angular.module('visForDocreq')
     .service('visUtils', function () {
 
 
@@ -39,7 +39,6 @@ angular.module('testApp')
         serviceObject.redrawAll = function (edgePack, nodePack, container, settingsImport) {
 
             settings = settingsImport;
-
 
             nodes = new vis.DataSet();
             edges = new vis.DataSet();
@@ -134,6 +133,10 @@ angular.module('testApp')
 
         serviceObject.setPathOrSelectionMode = function (choice) {
 
+            if(!nodes && !edges) {
+                return;
+            }
+
             if (choice === 'path') {
                 selectionForPathBool = true;
                 selectionForPath = [];
@@ -151,19 +154,39 @@ angular.module('testApp')
             edges.update(allEdges);
         };
 
+
+        function succ(nodeId, allEdges) {
+
+            var connectedNodes = [];
+
+            for (var i = 0; i < allEdges.length; i++) {
+                var edge = allEdges[i];
+
+                if (edge.from === nodeId) {
+                    connectedNodes.push(edge.to);
+                }
+            }
+            return connectedNodes;
+        }
+
         var count = 0;
         var stack = [];
-
 
         function onClick(selectedItems) {
 
             var allNodes = nodes.get();
             var allEdges = edges.get();
 
+            var hide = false;
+
             if (!selectionForPathBool) {
+
                 if (selectedItems.nodes.length !== 1) {
-                    restoreOnUnselect(allNodes, allEdges, settings);
+                    restoreOnUnselect(allNodes, allEdges);
+                    hide = false; //dont hide unselected nodes if no nodes are selected!
+
                 } else {
+                    hide = true;
                     for (var i = 0; i < allEdges.length; i++) {
                         allEdges[i].inConnectionList = (allEdges[i].from === selectedItems.nodes[0] || allEdges[i].to === selectedItems.nodes[0]);
                     }
@@ -171,16 +194,17 @@ angular.module('testApp')
                     clearLevelOfSeperation(allNodes); //reset nodes
 
                     var ids = getConnectedNodes(selectedItems.nodes[0], allEdges, true);
-                    ids.push(selectedItems.nodes[0]);
+
+                    if(ids.indexOf(selectedItems.nodes[0]) === -1) {
+                        ids.push(selectedItems.nodes[0]);
+                    }
 
                     storeLevelOfSeperation(ids, allNodes); //save node states
-
-                    setColor(allNodes, allEdges, true);
                 }
 
 
             } else {
-                var hide = false;
+                hide = true;
 
                 //reset Edges
                 for (var i = 0; i < allEdges.length; i++) {
@@ -204,34 +228,115 @@ angular.module('testApp')
                 //if two selected -> calculate path
                 if (selectionForPath.length === 2) {
 
-                    //TODO
-                    console.log('calculating..');
-
-                    var temp = angular.copy(allNodes);
-                    setAllNodesToUnvisited(temp);
+                    setAllNodesToUnvisited(allNodes);
                     stronglyConnectedComponents = [];
 
-                    for (i = 0; i < temp.length; i++) {
+                    for (i = 0; i < allNodes.length; i++) {
                         count = 0;
                         stack = [];
 
-                        if (temp[i].state === 'unchecked') {
-                            tarjanForStronglyConnectedComponents(temp, allEdges, temp[i]);
+                        if (allNodes[i].state === 'unchecked') {
+                            tarjanForStronglyConnectedComponents(allNodes, allEdges, allNodes[i]);
                         }
                     }
 
-                    console.log(stronglyConnectedComponents);
+                    var alternativeRepresentation = [];
+
+                    for (var i = 0; i < stronglyConnectedComponents.length; i++) {
+                        alternativeRepresentation.push({
+                            id: i,
+                            nodes: stronglyConnectedComponents[i],
+                            to: []
+                        });
+                    }
+
+                    for (var i = 0; i < alternativeRepresentation.length; i++) {
+                        for (var j = 0; j < alternativeRepresentation[i].nodes.length; j++) {
+                            var su = succ(alternativeRepresentation[i].nodes[j].id, allEdges);
+                            for (var k = 0; k < alternativeRepresentation.length; k++) {
+                                if (k === i) {
+                                    continue;
+                                }
+                                for (var t = 0; t < alternativeRepresentation[k].nodes.length; t++) {
+                                    for (var z = 0; z < su.length; z++) {
+
+                                        if (alternativeRepresentation[k].nodes[t].id === su[z] && $.inArray(k, alternativeRepresentation[i].to) === -1) {
+                                            alternativeRepresentation[i].to.push(k);
+                                        }
+                                    }
+                                }
+                            }
+
+
+                        }
+                    }
+
+                    var startId = selectionForPath[0].id;
+                    var targetId = selectionForPath[1].id;
+
+                    var startIndex, targetIndex;
+
+                    for (var i = 0; i < alternativeRepresentation.length; i++) {
+                        for (var j = 0; j < alternativeRepresentation[i].nodes.length; j++) {
+                            if (alternativeRepresentation[i].nodes[j].id === startId) {
+
+                                startIndex = i;
+                            } else if (alternativeRepresentation[i].nodes[j].id === targetId) {
+
+                                targetIndex = i;
+                            }
+                        }
+                    }
+
+                    getAllPathsBetweenSCC(startIndex, targetIndex, alternativeRepresentation);
+
+
+                    for (var i = 0; i < alternativeRepresentation.length; i++) {
+
+                        if (alternativeRepresentation[i].highlight) {
+                            for (var j = 0; j < alternativeRepresentation[i].nodes.length; j++) {
+                                for (var t = 0; t < allNodes.length; t++) {
+
+                                    if (allNodes[t].id === alternativeRepresentation[i].nodes[j].id) {
+                                        allNodes[t].inConnectionList = true;
+                                        console.log(allNodes[t]);
+                                    }
+                                }
+                            }
+                        }
+
+                    }
 
 
                     selectionForPath = [];
                 }
 
-                setColor(allNodes, allEdges, hide);
+
             }
+
+            setColor(allNodes, allEdges, hide);
 
 
             nodes.update(allNodes);
             edges.update(allEdges);
+        }
+
+        function getAllPathsBetweenSCC(currIndex, targetIndex, allSCC) {
+
+            if (currIndex === targetIndex) {
+                allSCC[currIndex].highlight = true;
+                return true;
+            }
+
+            for (var i = 0; i < allSCC[currIndex].to.length; i++) {
+                if (getAllPathsBetweenSCC(allSCC[currIndex].to[i], targetIndex, allSCC)) {
+
+                    allSCC[currIndex].highlight = true;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         function setAllNodesToUnvisited(allNodes) {
@@ -240,7 +345,6 @@ angular.module('testApp')
                 allNodes[i].state = 'unchecked';
             }
         }
-
 
         function tarjanForStronglyConnectedComponents(allNodes, allEdges, currentNode) {
 
@@ -270,16 +374,15 @@ angular.module('testApp')
 
             }
 
+            //strong connected component
             if (currentNode.l === currentNode.in) {
 
                 var component = [];
 
-                //console.log('starke Szkomponente:');
                 while (stack[stack.length - 1].id !== currentNode.id) {
                     var w = stack.pop();
                     w.onStack = false;
                     component.push(w);
-                    //console.log(w);
                 }
 
                 var w = stack.pop();
@@ -288,34 +391,17 @@ angular.module('testApp')
 
 
                 addComponentWithoutDuplicate(component);
-                //console.log(w);
             }
 
             currentNode.state = 'finished';
             count++;
-
-            //Tarjan-visit(G,v){
-            //    farbe[v]=grau; zeit=zeit+1; in[v]=zeit; l[v]=zeit;
-            //    PUSH(S,v)
-            //    FOR EACH u in succ(v) DO {
-            //        IF farbe[u]=weiss THEN
-            //        { Tarjan-visit[u]; l[v]=min(l[v],l[u]) ;}
-            //        ELSEIF u in S THEN l[v]=min(l[v],in[u]);
-            //    }
-            //    IF (l[v]=in[v]) {
-            //        Ausgabe(starke ZshK":)
-            //        DO { u=TOP(S); Ausgabe(u); POP(S); }
-            //        UNTIL u=v;
-            //    }
-            //    farbe[v]=schwarz; zeit=zeit+1;
-            //}
         }
 
         function addComponentWithoutDuplicate(comp) {
 
             var valid = true;
 
-            angular.forEach(stronglyConnectedComponents , function (current) {
+            angular.forEach(stronglyConnectedComponents, function (current) {
 
 
                     //if length matches -> check in detail
@@ -331,7 +417,7 @@ angular.module('testApp')
                 }
             );
 
-            if(valid) {
+            if (valid) {
                 stronglyConnectedComponents.push(comp);
             }
 
@@ -352,7 +438,7 @@ angular.module('testApp')
          * @param {[object]} allNodes
          * @param {[object]} allEdges
          */
-        function restoreOnUnselect(allNodes, allEdges, settings) {
+        function restoreOnUnselect(allNodes, allEdges) {
             var nodeId;
             for (nodeId in allNodes) {
                 if (allNodes.hasOwnProperty(nodeId)) {
@@ -369,9 +455,11 @@ angular.module('testApp')
                     allNodes[nodeId].inConnectionList = undefined;
                 }
             }
+
             for (var i = 0; i < allEdges.length; i++) {
                 allEdges[i].color = settings.colDefault;
                 allEdges[i].width = settings.edgWidthDef;
+                allEdges[i].inConnectionList = false;
             }
         }
 
@@ -409,37 +497,26 @@ angular.module('testApp')
 
         /**
          * Get a list of nodes that are connected to the supplied nodeId with edges.
-         * @param nodeId, bothDirections
-         * @returns {Array of Ids}
+         * @param nodeId - current node
+         * @param allEdges - all edges
+         * @param bothDirections - interprete graph as undirected
+         * @returns Array of Ids
          */
         function getConnectedNodes(nodeId, allEdges, bothDirections) {
             var connectedNodes = [];
 
             for (var i = 0; i < allEdges.length; i++) {
                 var edge = allEdges[i];
-                if (edge.to === nodeId && bothDirections) {
+                if (edge.to === nodeId && bothDirections && connectedNodes.indexOf(edge.from) === -1) {
                     connectedNodes.push(edge.from);
                 }
-                else if (edge.from === nodeId) {
+                else if (edge.from === nodeId && connectedNodes.indexOf(edge.to) === -1) {
                     connectedNodes.push(edge.to);
                 }
             }
             return connectedNodes;
         }
 
-        function succ(nodeId, allEdges) {
-
-            var connectedNodes = [];
-
-            for (var i = 0; i < allEdges.length; i++) {
-                var edge = allEdges[i];
-
-                if (edge.from === nodeId) {
-                    connectedNodes.push(edge.to);
-                }
-            }
-            return connectedNodes;
-        }
 
         /**
          * Sets color for Nodes and Edges

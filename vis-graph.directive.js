@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('testApp')
+angular.module('visForDocreq')
     .directive('visGraph', ['visUtils', '$timeout',
     function (visUtils, $timeout){
 

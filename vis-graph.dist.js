@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('testApp', []).service('visUtils', function () {
+angular.module('visForDocreq', []).service('visUtils', function () {
 
     var settings;
     var network;

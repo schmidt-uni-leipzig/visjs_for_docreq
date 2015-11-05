@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('testApp', []).controller('mainCtrl', ['$scope', function($scope) {
+angular.module('visForDocreq', []).controller('mainCtrl', ['$scope', function($scope) {
 
     $scope.showViz = false;
     $scope.showOverlay = true;
