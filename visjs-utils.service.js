@@ -23,7 +23,7 @@ angular.module('visForDocreq')
         var stabilizeTimer = 0;
 
         var stronglyConnectedComponents = [];
-
+        var deactivateCtrlForPathAnalytics = false;
 
         var serviceObject = this;
 
@@ -125,15 +125,26 @@ angular.module('visForDocreq')
             }
         };
 
+        /**
+         * Allows to set new data by using directive 2 way binding.
+         *
+         * @param edgePack
+         * @param nodePack
+         */
         serviceObject.updateData = function (edgePack, nodePack) {
 
             nodes.update(edgePack);
             edges.update(nodePack);
         };
 
-        serviceObject.setPathOrSelectionMode = function (choice) {
+        /**
+         * Changes between the path or single selection mode.
+         *
+         * @param choice
+         */
+        serviceObject.setPathOrSelectionMode = function (choice, reset) {
 
-            if(!nodes && !edges) {
+            if(!nodes && !edges || (deactivateCtrlForPathAnalytics && reset)) {
                 return;
             }
 
@@ -145,16 +156,23 @@ angular.module('visForDocreq')
                 selectionForPathBool = false;
                 selectionForPath = [];
             }
+            if(reset) {
+                var allNodes = nodes.get();
+                var allEdges = edges.get();
+                restoreOnUnselect(allNodes, allEdges);
 
-            var allNodes = nodes.get();
-            var allEdges = edges.get();
-            restoreOnUnselect(allNodes, allEdges, settings);
-
-            nodes.update(allNodes);
-            edges.update(allEdges);
+                nodes.update(allNodes);
+                edges.update(allEdges);
+            }
         };
 
-
+        /**
+         * Return node succ as Array of nodeIds.
+         *
+         * @param nodeId
+         * @param allEdges
+         * @returns {Array}
+         */
         function succ(nodeId, allEdges) {
 
             var connectedNodes = [];
@@ -172,12 +190,18 @@ angular.module('visForDocreq')
         var count = 0;
         var stack = [];
 
+        /**
+         * Gets called if the users click inside the visjs context.
+         *
+         * @param selectedItems
+         */
         function onClick(selectedItems) {
 
             var allNodes = nodes.get();
             var allEdges = edges.get();
 
             var hide = false;
+            deactivateCtrlForPathAnalytics = false;
 
             // no path
             if (!selectionForPathBool) {
@@ -214,7 +238,7 @@ angular.module('visForDocreq')
                 //if 'blank' click or third selection -> reset
                 if ((!selectedItems.nodes[selectedItems.nodes.length - 1]) || selectionForPath.length > 2) {
                     selectionForPath = [];
-                    restoreOnUnselect(allNodes, allEdges, settings);
+                    restoreOnUnselect(allNodes, allEdges);
                 } else {
                     for (var p = 0; p < allNodes.length; p++) {
                         allNodes[p].checked = false;
@@ -227,6 +251,7 @@ angular.module('visForDocreq')
 
                 //if two selected -> calculate path
                 if (selectionForPath.length === 2) {
+                    deactivateCtrlForPathAnalytics = true;
                     hide = true;
 
                     setAllNodesToUnvisited(allNodes);
@@ -267,8 +292,6 @@ angular.module('visForDocreq')
                                     }
                                 }
                             }
-
-
                         }
                     }
 
@@ -277,53 +300,66 @@ angular.module('visForDocreq')
 
                     var startIndex, targetIndex;
 
+                    // works perfectly fine
                     for (var i = 0; i < alternativeRepresentation.length; i++) {
                         for (var j = 0; j < alternativeRepresentation[i].nodes.length; j++) {
                             if (alternativeRepresentation[i].nodes[j].id === startId) {
 
                                 startIndex = i;
                             } else if (alternativeRepresentation[i].nodes[j].id === targetId) {
-
                                 targetIndex = i;
                             }
                         }
                     }
 
                     getAllPathsBetweenSCC(startIndex, targetIndex, alternativeRepresentation);
+                    var temp = [];
 
-
+                    // get back from SCC to normal nodes and set inConnectionList true
                     for (var i = 0; i < alternativeRepresentation.length; i++) {
-
                         if (alternativeRepresentation[i].highlight) {
                             for (var j = 0; j < alternativeRepresentation[i].nodes.length; j++) {
                                 for (var t = 0; t < allNodes.length; t++) {
-
                                     if (allNodes[t].id === alternativeRepresentation[i].nodes[j].id) {
+                                        temp.push(allNodes[t]);
                                         allNodes[t].inConnectionList = true;
-                                        console.log(allNodes[t]);
                                     }
                                 }
                             }
                         }
-
                     }
 
+                    // highlight edges
+                    for (var t = 0; t < temp.length; t++) {
+                            for(var i = 0; i < allEdges.length; i++) {
+                                if(allEdges[i].to === temp[t].id) {
+                                    for(var j = 0; j < temp.length; j++) {
+                                        if(temp[j].id === allEdges[i].from) {
+                                            allEdges[i].inConnectionList = true;
+                                        }
+                                    }
+                                } else if (allEdges[i].from === temp[t].id) {
+                                    for(var j = 0; j < temp.length; j++) {
+                                        if(temp[j].id === allEdges[i].to) {
+                                            allEdges[i].inConnectionList = true;
+                                        }
+                                    }
+                                }
+                            }
+                    }
+
+                    serviceObject.setPathOrSelectionMode('selection', false);
 
                     selectionForPath = [];
                 }
-
-
             }
-
             setColor(allNodes, allEdges, hide);
-
 
             nodes.update(allNodes);
             edges.update(allEdges);
         }
 
         function getAllPathsBetweenSCC(currIndex, targetIndex, allSCC) {
-
             if (currIndex === targetIndex) {
                 allSCC[currIndex].highlight = true;
                 return true;
@@ -333,11 +369,10 @@ angular.module('visForDocreq')
                 if (getAllPathsBetweenSCC(allSCC[currIndex].to[i], targetIndex, allSCC)) {
 
                     allSCC[currIndex].highlight = true;
-                    return true;
                 }
             }
 
-            return false;
+            return allSCC[currIndex].highlight;
         }
 
         function setAllNodesToUnvisited(allNodes) {
@@ -401,10 +436,7 @@ angular.module('visForDocreq')
         function addComponentWithoutDuplicate(comp) {
 
             var valid = true;
-
             angular.forEach(stronglyConnectedComponents, function (current) {
-
-
                     //if length matches -> check in detail
                     if (current.length === comp.length) {
 
@@ -421,7 +453,6 @@ angular.module('visForDocreq')
             if (valid) {
                 stronglyConnectedComponents.push(comp);
             }
-
         }
 
         function getNodeById(nodeId, allNodes) {
@@ -517,7 +548,6 @@ angular.module('visForDocreq')
             }
             return connectedNodes;
         }
-
 
         /**
          * Sets color for Nodes and Edges

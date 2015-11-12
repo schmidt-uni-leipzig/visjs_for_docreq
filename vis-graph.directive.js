@@ -26,14 +26,14 @@ angular.module('visForDocreq')
                 body.keydown(function(event){
 
                     if(event.keyCode === 17) {
-                        visUtils.setPathOrSelectionMode('path');
+                        visUtils.setPathOrSelectionMode('path', true);
                     }
                 });
 
                 body.keyup(function(event){
 
                     if(event.keyCode === 17) {
-                        visUtils.setPathOrSelectionMode('selection');
+                        visUtils.setPathOrSelectionMode('selection', true);
                     }
                 });
 
