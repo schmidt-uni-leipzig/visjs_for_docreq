@@ -349,7 +349,7 @@ angular.module('visForDocreq', []).controller('mainCtrl', ['$scope', function($s
         edgWidthDef: 1.0,
         edgWidthUn: 1.0,
         useImage: true,
-        imagePath: 'images/',
+        imagePath: '../images/',
         options: {
             nodes: {
                 fontSize: 20,
