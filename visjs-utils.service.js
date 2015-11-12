@@ -179,11 +179,12 @@ angular.module('visForDocreq')
 
             var hide = false;
 
+            // no path
             if (!selectionForPathBool) {
 
                 if (selectedItems.nodes.length !== 1) {
                     restoreOnUnselect(allNodes, allEdges);
-                    hide = false; //dont hide unselected nodes if no nodes are selected!
+
 
                 } else {
                     hide = true;
@@ -202,9 +203,8 @@ angular.module('visForDocreq')
                     storeLevelOfSeperation(ids, allNodes); //save node states
                 }
 
-
+            // path
             } else {
-                hide = true;
 
                 //reset Edges
                 for (var i = 0; i < allEdges.length; i++) {
@@ -227,6 +227,7 @@ angular.module('visForDocreq')
 
                 //if two selected -> calculate path
                 if (selectionForPath.length === 2) {
+                    hide = true;
 
                     setAllNodesToUnvisited(allNodes);
                     stronglyConnectedComponents = [];
