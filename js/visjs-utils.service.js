@@ -1,6 +1,5 @@
 'use strict';
 
-
 angular.module('visForDocreq')
     .service('visUtils', function () {
 
