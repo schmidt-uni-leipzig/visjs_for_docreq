@@ -1,8 +1,9 @@
 {
   "name": "visjs-for-docreq",
-  "version": "0.0.0",
+  "version": "0.0.4",
   "authors": [
-    "Stefan Bechert <bechert@infai.org>"
+    "Stefan Bechert <bechert@infai.org>",
+    "Johannes Schmidt <schmidt@infai.org>"
   ],
   "description": "",
   "main": ["dist/vis-graph.min.js"],
